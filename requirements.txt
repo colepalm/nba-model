@@ -1,1 +1,2 @@
 nba_api
+pandas
