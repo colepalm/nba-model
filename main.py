@@ -1,33 +1,28 @@
 import pandas as pd
 
 from nba_api.live.nba.endpoints import scoreboard
-from nba_api.stats.endpoints import cumestatsteam, leaguegamelog
-
+from nba_api.stats.endpoints import teamgamelog
 
 # Today's Score Board
 games = scoreboard.ScoreBoard()
-gameLog = leaguegamelog.LeagueGameLog(
-    counter=0,
-    direction='ASC',
-    league_id='00',
-    player_or_team_abbreviation='T',
-    season='2020-21',
-    season_type_all_star='Regular Season',
-    sorter='DATE'
-)
-
-log_dict = gameLog.get_dict()
-
 games_dict = games.get_dict()
 team1 = games_dict['scoreboard']['games'][0]['homeTeam']['teamId']
 team2 = games_dict['scoreboard']['games'][0]['awayTeam']['teamId']
 
+gameLogTeam1 = teamgamelog.TeamGameLog(
+    season='2022-23',
+    season_type_all_star='Regular Season',
+    team_id=team1,
+)
 
+gameLogTeam2 = teamgamelog.TeamGameLog(
+    season='2022-23',
+    season_type_all_star='Regular Season',
+    team_id=team2,
+)
 
-
-
-season = cumestatsteam.CumeStatsTeam()
-print(season)
+log_dict1 = gameLogTeam1.get_dict()
+log_dict2 = gameLogTeam2.get_dict()
 
 
 print(games_dict)
