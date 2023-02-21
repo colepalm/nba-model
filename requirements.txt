@@ -1,2 +1,2 @@
 nba_api
-pandas
+pandas==1.5.3
