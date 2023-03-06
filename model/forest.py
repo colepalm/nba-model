@@ -9,6 +9,6 @@ class Forest:
         self.log = log
 
     def create_dataframe(self):
-        df = pd.read_json(json.dumps(self.log))
+        rowSet = self.log['resultSets'][0]['rowSet']
+        df = pd.json_normalize(rowSet)
         print(df)
-
