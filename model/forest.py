@@ -1,5 +1,3 @@
-import json
-
 import pandas as pd
 
 
@@ -11,4 +9,4 @@ class Forest:
     def create_dataframe(self):
         rowSet = self.log['resultSets'][0]['rowSet']
         df = pd.json_normalize(rowSet)
-        print(df)
+        return df

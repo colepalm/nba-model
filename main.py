@@ -27,8 +27,11 @@ def main():
         log_dict1 = gameLogTeam1.get_dict()
         log_dict2 = gameLogTeam2.get_dict()
 
-        forest = Forest(log_dict1)
-        forest.create_dataframe()
+        forest1 = Forest(log_dict1)
+        df1 = forest1.create_dataframe()
+
+        forest2 = Forest(log_dict1)
+        df2 = forest2.create_dataframe()
 
 
 if __name__ == "__main__":
