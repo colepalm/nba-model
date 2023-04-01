@@ -1,3 +1,4 @@
+import pandas as pd
 from nba_api.live.nba.endpoints import scoreboard
 from nba_api.stats.endpoints import teamgamelog
 
@@ -32,6 +33,9 @@ def main():
 
         forest2 = Forest(log_dict1)
         df2 = forest2.create_dataframe()
+
+        selections = pd.concat([df1, df2], ignore_index=True)
+        print(selections.head())
 
 
 if __name__ == "__main__":
