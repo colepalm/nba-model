@@ -1,6 +1,6 @@
 import pandas as pd
 from nba_api.live.nba.endpoints import scoreboard
-from nba_api.stats.endpoints import teamgamelog
+from nba_api.stats.endpoints import cumestatsteam, teamgamelog
 
 from model.forest import Forest
 
@@ -28,10 +28,35 @@ def main():
         log_dict1 = gameLogTeam1.get_dict()
         log_dict2 = gameLogTeam2.get_dict()
 
-        forest1 = Forest(log_dict1)
+        team1Games = []
+        team2Games = []
+
+        for game in log_dict1['resultSets'][0]['rowSet']:
+            team1Games.append(game[1])
+
+        for game in log_dict2['resultSets'][0]['rowSet']:
+            team2Games.append(game[1])
+
+        statsTeam1 = cumestatsteam.CumeStatsTeam(
+            game_ids=team1Games,
+            league_id=0,
+            season='2022-23',
+            season_type_all_star='Regular Season',
+            team_id=team1
+        )
+
+        statsTeam2 = cumestatsteam.CumeStatsTeam(
+            game_ids=team2Games,
+            league_id=0,
+            season='2022-23',
+            season_type_all_star='Regular Season',
+            team_id=team2
+        )
+
+        forest1 = Forest(statsTeam1.get_dict())
         df1 = forest1.create_dataframe()
 
-        forest2 = Forest(log_dict1)
+        forest2 = Forest(statsTeam2)
         df2 = forest2.create_dataframe()
 
         selections = pd.concat([df1, df2], ignore_index=True)
