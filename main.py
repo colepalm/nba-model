@@ -56,7 +56,7 @@ def main():
         forest1 = Forest(statsTeam1.get_dict())
         df1 = forest1.create_dataframe()
 
-        forest2 = Forest(statsTeam2)
+        forest2 = Forest(statsTeam2.get_dict())
         df2 = forest2.create_dataframe()
 
         selections = pd.concat([df1, df2], ignore_index=True)
