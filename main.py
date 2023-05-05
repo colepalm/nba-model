@@ -29,13 +29,18 @@ def main():
         log_dict2 = gameLogTeam2.get_dict()
 
         team1Games = []
+        team1GamesWL = []
         team2Games = []
+        team2GamesWL = []
 
+        # Creates arrays for games and results
         for game in log_dict1['resultSets'][0]['rowSet']:
             team1Games.append(game[1])
+            team1GamesWL.append(game[4])
 
         for game in log_dict2['resultSets'][0]['rowSet']:
             team2Games.append(game[1])
+            team2GamesWL.append(game[4])
 
         statsTeam1 = cumestatsteam.CumeStatsTeam(
             game_ids=team1Games,

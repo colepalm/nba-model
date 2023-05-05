@@ -7,6 +7,6 @@ class Forest:
         self.log = log
 
     def create_dataframe(self):
-        results = self.log['resultSets'][0]
+        results = self.log['resultSets'][1]
         df = pd.DataFrame(results['rowSet'], columns=results['headers'])
         return df
