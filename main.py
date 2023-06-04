@@ -67,6 +67,5 @@ def main():
         selections = pd.concat([df1, df2], ignore_index=True, axis=1)
         selections = selections.sample(frac=1, random_state=42).reset_index(drop=True)
 
-
 if __name__ == "__main__":
     main()
