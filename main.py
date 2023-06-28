@@ -1,17 +1,18 @@
 import pandas as pd
-from nba_api.live.nba.endpoints import scoreboard
-from nba_api.stats.endpoints import cumestatsteam, teamgamelog
+from nba_api.stats.endpoints import cumestatsteam, teamgamelog, scoreboardv2
 
 from model.forest import Forest
 
 
 def main():
     # Today's Score Board
-    games = scoreboard.ScoreBoard()
+    games = scoreboardv2.ScoreboardV2(
+        game_date='2021-03-14'
+    )
     games_dict = games.get_dict()
-    if len(games_dict['scoreboard']['games']) > 0:
-        team1 = games_dict['scoreboard']['games'][0]['homeTeam']['teamId']
-        team2 = games_dict['scoreboard']['games'][0]['awayTeam']['teamId']
+    if len(games_dict['resultSets']) > 0:
+        team1 = games_dict['resultSets'][0]['rowSet'][0][6]
+        team2 = games_dict['resultSets'][0]['rowSet'][0][7]
 
         gameLogTeam1 = teamgamelog.TeamGameLog(
             season='2022-23',
