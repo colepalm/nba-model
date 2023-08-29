@@ -6,6 +6,7 @@ from nba_api.stats.endpoints import teamdashboardbygeneralsplits
 from sklearn.preprocessing import StandardScaler
 
 max_retries = 5
+timeout_seconds = 30
 
 def main():
     # Step 1: Get a list of all NBA teams
@@ -54,7 +55,8 @@ def fetch_team_stats(team_id, season):
         try:
             team_stats = teamdashboardbygeneralsplits.TeamDashboardByGeneralSplits(
                 team_id=team_id,
-                season=season
+                season=season,
+                timeout=timeout_seconds
             )
             return team_stats
         except Exception as e:
