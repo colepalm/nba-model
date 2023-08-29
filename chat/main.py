@@ -1,7 +1,11 @@
+import time
 import pandas as pd
+
 from nba_api.stats.static import teams
 from nba_api.stats.endpoints import teamdashboardbygeneralsplits
 from sklearn.preprocessing import StandardScaler
+
+max_retries = 5
 
 def main():
     # Step 1: Get a list of all NBA teams
@@ -17,10 +21,7 @@ def main():
         team_name = team['full_name']
 
         # Fetch team statistics for the given season
-        team_stats = teamdashboardbygeneralsplits.TeamDashboardByGeneralSplits(
-            team_id=team_id,
-            season=season
-        )
+        team_stats = fetch_team_stats(team_id, season)
 
         # Convert the response to a dictionary
         team_stats_dict = team_stats.get_normalized_dict()
@@ -46,6 +47,23 @@ def main():
     scaler = StandardScaler()
     team_stats_df[columns_to_keep] = scaler.fit_transform(team_stats_df[columns_to_keep])
     print(team_stats_df)
+
+def fetch_team_stats(team_id, season):
+    retries = 0
+    while retries < max_retries:
+        try:
+            team_stats = teamdashboardbygeneralsplits.TeamDashboardByGeneralSplits(
+                team_id=team_id,
+                season=season
+            )
+            return team_stats
+        except Exception as e:
+            print("Error fetching data:", e)
+            retries += 1
+            print("Retrying in 5 seconds...")
+            time.sleep(1)  # Wait for 5 seconds before retrying
+    print("Max retries reached. Could not fetch data.")
+    return None
 
 if __name__ == "__main__":
     main()
