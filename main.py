@@ -1,9 +1,10 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier  # Import your chosen model
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-from src.data_collection.nba_data_collector import fetch_nba_team_stats
+from src.data_collection.previous_game_collector import fetch_game_data
+from src.data_collection.season_stat_collector import fetch_nba_team_stats
 
 
 def main():
@@ -11,6 +12,8 @@ def main():
 
     # Fetch and preprocess NBA team statistics
     team_stats_df = fetch_nba_team_stats(season)
+
+    game_data_df = fetch_game_data(season)
 
     # Define features and target variable
     X = team_stats_df.drop('target_column', axis=1)  # Features
