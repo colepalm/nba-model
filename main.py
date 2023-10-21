@@ -1,72 +1,37 @@
 import pandas as pd
-from nba_api.stats.endpoints import cumestatsteam, teamgamelog, scoreboardv2
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier  # Import your chosen model
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-from model.forest import Forest
+from src.data_collection.nba_data_collector import fetch_nba_team_stats
 
 
 def main():
-    # Today's Score Board
-    games = scoreboardv2.ScoreboardV2(
-        game_date='2021-03-14'
-    )
-    games_dict = games.get_dict()
-    if len(games_dict['resultSets']) > 0:
-        team1 = games_dict['resultSets'][0]['rowSet'][0][6]
-        team2 = games_dict['resultSets'][0]['rowSet'][0][7]
+    season = '2022-23'
 
-        gameLogTeam1 = teamgamelog.TeamGameLog(
-            season='2022-23',
-            season_type_all_star='Regular Season',
-            team_id=team1,
-        )
+    # Fetch and preprocess NBA team statistics
+    team_stats_df = fetch_nba_team_stats(season)
 
-        gameLogTeam2 = teamgamelog.TeamGameLog(
-            season='2022-23',
-            season_type_all_star='Regular Season',
-            team_id=team2,
-        )
+    # Define features and target variable
+    X = team_stats_df.drop('target_column', axis=1)  # Features
+    y = team_stats_df['target_column']  # Target variable
 
-        log_dict1 = gameLogTeam1.get_dict()
-        log_dict2 = gameLogTeam2.get_dict()
+    # Split the data into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-        team1Games = []
-        team1GamesWL = []
-        team2Games = []
-        team2GamesWL = []
+    # Create and train model
+    model = RandomForestClassifier(random_state=42)
+    model.fit(X_train, y_train)
 
-        # Creates arrays for games and results
-        for game in log_dict1['resultSets'][0]['rowSet']:
-            team1Games.append(game[1])
-            team1GamesWL.append(game[4])
+    # Evaluate the model
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    report = classification_report(y_test, y_pred)
+    conf_matrix = confusion_matrix(y_test, y_pred)
 
-        for game in log_dict2['resultSets'][0]['rowSet']:
-            team2Games.append(game[1])
-            team2GamesWL.append(game[4])
-
-        statsTeam1 = cumestatsteam.CumeStatsTeam(
-            game_ids=team1Games,
-            league_id=0,
-            season='2022-23',
-            season_type_all_star='Regular Season',
-            team_id=team1
-        )
-
-        statsTeam2 = cumestatsteam.CumeStatsTeam(
-            game_ids=team2Games,
-            league_id=0,
-            season='2022-23',
-            season_type_all_star='Regular Season',
-            team_id=team2
-        )
-
-        forest1 = Forest(statsTeam1.get_dict())
-        df1 = forest1.create_dataframe()
-
-        forest2 = Forest(statsTeam2.get_dict())
-        df2 = forest2.create_dataframe()
-
-        selections = pd.concat([df1, df2], ignore_index=True, axis=1)
-        selections = selections.sample(frac=1, random_state=42).reset_index(drop=True)
+    print(f'Accuracy: {accuracy}')
+    print(f'Classification Report:\n{report}')
+    print(f'Confusion Matrix:\n{conf_matrix}')
 
 if __name__ == "__main__":
     main()
