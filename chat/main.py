@@ -35,8 +35,7 @@ def main():
         })
 
     # Extract relevant statistics columns
-    columns_to_keep = ['FG_PCT', 'FG3_PCT', 'FT_PCT', 'REB', 'AST', 'TO', 'STL', 'BLK', 'PTS']
-    # Create an empty list to store the extracted statistics
+    columns_to_keep = ['FG_PCT', 'FG3_PCT', 'FT_PCT', 'REB', 'AST', 'TOV', 'STL', 'BLK', 'PTS']
     # Create an empty list to store the extracted statistics
     extracted_stats = []
 
