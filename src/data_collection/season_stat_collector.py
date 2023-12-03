@@ -25,8 +25,8 @@ def fetch_nba_team_stats(season):
 
         for overall_stat in overall_stats:
             extracted_stat = {
-                'team_id': team_id,
-                'team_name': team_name,
+                'TEAM_ID': team_id,
+                'TEAM_NAME': team_name,
             }
 
             columns_to_keep = ['FG_PCT', 'FG3_PCT', 'FT_PCT', 'REB', 'AST', 'TOV', 'STL', 'BLK', 'PTS']

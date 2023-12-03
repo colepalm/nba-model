@@ -1,3 +1,4 @@
+import pandas as pd
 from nba_api.stats.endpoints import leaguegamelog
 
 
@@ -10,5 +11,10 @@ def fetch_game_data(season):
     return games
 
 def merge_team_and_game_data(team_stats, game_data):
-    return
-    # TODO: IMPLEMENT ME
+    # Assuming there's a common key, such as 'team_id'
+    common_key = 'TEAM_ID'
+
+    # Merge dataframes based on the common key
+    combined_data = pd.merge(team_stats, game_data, on=common_key, how='inner')
+
+    return combined_data

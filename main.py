@@ -1,9 +1,8 @@
-import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-from src.data_collection.previous_game_collector import fetch_game_data
+from src.data_collection.previous_game_collector import fetch_game_data, merge_team_and_game_data
 from src.data_collection.season_stat_collector import fetch_nba_team_stats
 
 
@@ -14,14 +13,14 @@ def main():
     team_stats_df = fetch_nba_team_stats(season)
 
     # Fetch and preprocess game data
-    game_data_df = fetch_game_data(season)  # Implement this function based on the game data source
+    game_data_df = fetch_game_data(season)
 
     # Combine team and game data based on common keys (e.g., team ID)
     combined_data = merge_team_and_game_data(team_stats_df, game_data_df)
 
-    # Define features and target variable
-    X = team_stats_df.drop('target_column', axis=1)  # Features
-    y = team_stats_df['target_column']  # Target variable
+    # TODO: Define features and target variable
+    X = combined_data.drop('target_column', axis=1)  # Features
+    y = combined_data['target_column']  # Target variable
 
     # Split the data into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
