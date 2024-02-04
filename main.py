@@ -5,6 +5,7 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 from src.data_collection.previous_game_collector import fetch_game_data, identify_opponents, \
     merge_home_and_away
 from src.data_collection.season_stat_collector import fetch_nba_team_stats
+
 def main():
     season = '2022-23'
 
