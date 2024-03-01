@@ -24,7 +24,7 @@ def main():
     # Features
     X = combined_data.drop(
         [
-            'GATE_DATE',
+            'GAME_DATE',
             'GAME_ID',
             'MATCHUP',
             'MIN',
