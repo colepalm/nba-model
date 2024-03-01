@@ -18,12 +18,24 @@ def main():
     # Fetch opponents
     opponents_df = identify_opponents(game_data_df)
 
-    # Combine team and game data based on common keys (e.g., team ID)
+    # Combine team and game data based on common key
     combined_data = merge_home_and_away(game_data_df, opponents_df)
 
-    # TODO: Define features and target variable
-    X = combined_data.drop('target_column', axis=1)  # Features
-    y = combined_data['target_column']  # Target variable
+    # Features
+    X = combined_data.drop(
+        [
+            'GATE_DATE',
+            'GAME_ID',
+            'MATCHUP',
+            'MIN',
+            'OPPONENT_TEAM_ID',
+            'TEAM_ID',
+            'TEAM_NAME',
+            'VIDEO_AVAILABLE',
+            'WL'
+         ], axis=1)
+    # Target variable
+    y = combined_data['WL']
 
     # Split the data into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
