@@ -29,11 +29,13 @@ def main():
             'MATCHUP',
             'MIN',
             'OPPONENT_TEAM_ID',
+            'TEAM_ABBREVIATION',
             'TEAM_ID',
             'TEAM_NAME',
             'VIDEO_AVAILABLE',
             'WL'
          ], axis=1)
+
     # Target variable
     y = combined_data['WL']
 
