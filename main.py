@@ -10,12 +10,13 @@ def main():
     season = '2022-23'
 
     # Fetch and preprocess NBA team statistics
-    team_stats_df = fetch_nba_team_stats(season)
+    # team_stats_df = fetch_nba_team_stats(season)
 
     # Fetch and preprocess game data
     game_data_df = fetch_game_data(season)
 
     # Fetch opponents
+    # TODO: This has every game in it. it needs to be separated by team
     opponents_df = identify_opponents(game_data_df)
 
     # Combine team and game data based on common key
@@ -37,7 +38,7 @@ def main():
          ], axis=1)
 
     # Target variable
-    y = combined_data['WL']
+    y = combined_data['WL'].map({'W': 1, 'L': 0})
 
     # Split the data into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
