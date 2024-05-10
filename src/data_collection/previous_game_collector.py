@@ -9,12 +9,6 @@ def fetch_game_data(season):
 
     return games
 
-def merge_home_and_away(game_data, opponents_df):
-    # Merge dataframes based on the common key
-    combined_data = pd.merge(opponents_df, game_data, on=['GAME_ID', 'TEAM_ID'], how='left')
-
-    return combined_data
-
 def identify_opponents(game_log):
     # Ensure the data is sorted by GAME_ID for consistency
     game_log = game_log.sort_values(by='GAME_ID')
@@ -33,3 +27,18 @@ def identify_opponents(game_log):
     opponents_df = pd.DataFrame(opponent_mappings)
 
     return opponents_df
+
+
+def prepare_data(game_data_df, team_stats_df, opponents_df):
+    # First, merge the game data with opponent IDs
+    game_with_opponents = pd.merge(game_data_df, opponents_df, on='GAME_ID', how='left')
+
+    # Merge team stats for the primary team
+    game_with_team_stats = pd.merge(game_with_opponents, team_stats_df, left_on='TEAM_ID', right_on='TEAM_ID',
+                                    suffixes=('', '_team'), how='left')
+
+    # Merge team stats for the opponent team
+    game_with_full_stats = pd.merge(game_with_team_stats, team_stats_df, left_on='OPPONENT_TEAM_ID', right_on='TEAM_ID',
+                                    suffixes=('_team', '_opponent'), how='left')
+
+    return game_with_full_stats

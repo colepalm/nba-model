@@ -3,14 +3,15 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
 from src.data_collection.previous_game_collector import fetch_game_data, identify_opponents, \
-    merge_home_and_away
+ prepare_data
+
 from src.data_collection.season_stat_collector import fetch_nba_team_stats
 
 def main():
     season = '2022-23'
 
     # Fetch and preprocess NBA team statistics
-    # team_stats_df = fetch_nba_team_stats(season)
+    team_stats_df = fetch_nba_team_stats(season)
 
     # Fetch and preprocess game data
     game_data_df = fetch_game_data(season)
@@ -19,8 +20,7 @@ def main():
     # TODO: This has every game in it. it needs to be separated by team
     opponents_df = identify_opponents(game_data_df)
 
-    # Combine team and game data based on common key
-    combined_data = merge_home_and_away(game_data_df, opponents_df)
+    combined_data = prepare_data(game_data_df, team_stats_df, opponents_df)
 
     # Features
     X = combined_data.drop(
