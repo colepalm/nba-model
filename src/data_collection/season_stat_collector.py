@@ -12,6 +12,7 @@ def fetch_nba_team_stats(season):
     nba_teams = teams.get_teams()
 
     team_stats_list = []
+    columns_to_keep = ['FG_PCT', 'FG3_PCT', 'FT_PCT', 'REB', 'AST', 'TOV', 'STL', 'BLK', 'PTS']
 
     for team in nba_teams:
         team_id = team['id']
@@ -28,8 +29,6 @@ def fetch_nba_team_stats(season):
                 'TEAM_ID': team_id,
                 'TEAM_NAME': team_name,
             }
-
-            columns_to_keep = ['FG_PCT', 'FG3_PCT', 'FT_PCT', 'REB', 'AST', 'TOV', 'STL', 'BLK', 'PTS']
 
             for column in columns_to_keep:
                 extracted_stat[column] = overall_stat[column]

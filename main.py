@@ -31,8 +31,13 @@ def main():
             'MIN',
             'OPPONENT_TEAM_ID',
             'TEAM_ABBREVIATION',
-            'TEAM_ID',
+            'TEAM_ID_opponent_game',
+            'TEAM_ID_opponent_season',
+            'TEAM_ID_x',
+            'TEAM_ID_y',
             'TEAM_NAME',
+            'TEAM_NAME_team_game',
+            'TEAM_NAME_team_season',
             'VIDEO_AVAILABLE',
             'WL'
          ], axis=1)

@@ -34,11 +34,11 @@ def prepare_data(game_data_df, team_stats_df, opponents_df):
     game_with_opponents = pd.merge(game_data_df, opponents_df, on='GAME_ID', how='left')
 
     # Merge team stats for the primary team
-    game_with_team_stats = pd.merge(game_with_opponents, team_stats_df, left_on='TEAM_ID', right_on='TEAM_ID',
-                                    suffixes=('', '_team'), how='left')
+    game_with_team_stats = pd.merge(game_with_opponents, team_stats_df, left_on='TEAM_ID_x', right_on='TEAM_ID',
+                                    suffixes=('_team_game', '_team_season'), how='left')
 
     # Merge team stats for the opponent team
     game_with_full_stats = pd.merge(game_with_team_stats, team_stats_df, left_on='OPPONENT_TEAM_ID', right_on='TEAM_ID',
-                                    suffixes=('_team', '_opponent'), how='left')
+                                    suffixes=('_opponent_game', '_opponent_season'), how='left')
 
     return game_with_full_stats
