@@ -1,3 +1,4 @@
+import pandas as pd
 from sklearn.model_selection import StratifiedShuffleSplit, train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
@@ -20,10 +21,14 @@ def main():
 
     combined_data = prepare_data(game_data_df, team_stats_df, opponents_df)
 
-    # Features
+    combined_data.to_csv('combined_data.csv', index=False)
+    print("Combined data saved to combined_data.csv")
+
+    # Features: Exclude PLUS_MINUS and any other potential leakage features
     X = combined_data.drop(
         [
             'GAME_DATE',
+            'GAME_ID',
             'MATCHUP',
             'MIN',
             'OPPONENT_TEAM_ID',
@@ -36,7 +41,8 @@ def main():
             'TEAM_NAME_team_game',
             'TEAM_NAME_team_season',
             'VIDEO_AVAILABLE',
-            'WL'
+            'WL',
+            'PLUS_MINUS'
          ], axis=1)
 
     # Target variable
@@ -52,15 +58,15 @@ def main():
     X_train, X_test = X[train_index], X[test_index]
     y_train, y_test = y[train_index], y[test_index]
 
-    # Check for overlapping game IDs
-    train_game_ids = X_train['GAME_ID'].unique()
-    test_game_ids = X_test['GAME_ID'].unique()
-    overlap = set(train_game_ids).intersection(set(test_game_ids))
+    # Verify no overlapping game IDs
+    train_game_ids_set = set(train_game_ids)
+    test_game_ids_set = set(test_game_ids)
+    overlap = train_game_ids_set.intersection(test_game_ids_set)
     print("Number of overlapping games between train and test sets:", len(overlap))
 
-    # Drop 'GAME_ID' from features after checking for overlap
-    X_train = X_train.drop('GAME_ID', axis=1)
-    X_test = X_test.drop('GAME_ID', axis=1)
+    # Check class balance
+    print("Training set class distribution:", y_train.value_counts())
+    print("Test set class distribution:", y_test.value_counts())
 
     # Create and train model
     model = RandomForestClassifier(random_state=42)
@@ -75,6 +81,13 @@ def main():
     print(f'Accuracy: {accuracy}')
     print(f'Classification Report:\n{report}')
     print(f'Confusion Matrix:\n{conf_matrix}')
+
+    # Check feature importances
+    feature_importances = model.feature_importances_
+    feature_names = X.columns
+    importance_df = pd.DataFrame({'Feature': feature_names, 'Importance': feature_importances})
+    importance_df = importance_df.sort_values(by='Importance', ascending=False)
+    print("Feature importances:\n", importance_df)
 
 if __name__ == "__main__":
     main()
