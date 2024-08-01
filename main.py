@@ -1,11 +1,10 @@
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedShuffleSplit, train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-from src.data_collection.previous_game_collector import fetch_game_data, identify_opponents, \
- prepare_data
-
+from src.data_collection.previous_game_collector import fetch_game_data, identify_opponents, prepare_data
 from src.data_collection.season_stat_collector import fetch_nba_team_stats
+
 
 def main():
     season = '2022-23'
@@ -17,7 +16,6 @@ def main():
     game_data_df = fetch_game_data(season)
 
     # Fetch opponents
-    # TODO: This has every game in it. it needs to be separated by team
     opponents_df = identify_opponents(game_data_df)
 
     combined_data = prepare_data(game_data_df, team_stats_df, opponents_df)
@@ -26,7 +24,6 @@ def main():
     X = combined_data.drop(
         [
             'GAME_DATE',
-            'GAME_ID',
             'MATCHUP',
             'MIN',
             'OPPONENT_TEAM_ID',
@@ -45,8 +42,25 @@ def main():
     # Target variable
     y = combined_data['WL'].map({'W': 1, 'L': 0})
 
-    # Split the data into training and testing sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    # Ensure no overlapping game IDs in train and test sets
+    game_ids = combined_data['GAME_ID'].unique()
+    train_game_ids, test_game_ids = train_test_split(game_ids, test_size=0.2, random_state=42)
+
+    train_index = combined_data['GAME_ID'].isin(train_game_ids)
+    test_index = combined_data['GAME_ID'].isin(test_game_ids)
+
+    X_train, X_test = X[train_index], X[test_index]
+    y_train, y_test = y[train_index], y[test_index]
+
+    # Check for overlapping game IDs
+    train_game_ids = X_train['GAME_ID'].unique()
+    test_game_ids = X_test['GAME_ID'].unique()
+    overlap = set(train_game_ids).intersection(set(test_game_ids))
+    print("Number of overlapping games between train and test sets:", len(overlap))
+
+    # Drop 'GAME_ID' from features after checking for overlap
+    X_train = X_train.drop('GAME_ID', axis=1)
+    X_test = X_test.drop('GAME_ID', axis=1)
 
     # Create and train model
     model = RandomForestClassifier(random_state=42)
