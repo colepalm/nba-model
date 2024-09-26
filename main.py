@@ -1,3 +1,4 @@
+import joblib
 import pandas as pd
 from sklearn.model_selection import StratifiedShuffleSplit, train_test_split
 from sklearn.ensemble import RandomForestClassifier
@@ -88,6 +89,9 @@ def main():
     importance_df = pd.DataFrame({'Feature': feature_names, 'Importance': feature_importances})
     importance_df = importance_df.sort_values(by='Importance', ascending=False)
     print("Feature importances:\n", importance_df)
+
+    joblib.dump(model, 'nba_game_predictor.pkl')
+    print("Model saved to nba_game_predictor.pkl")
 
 if __name__ == "__main__":
     main()
