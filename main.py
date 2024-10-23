@@ -9,7 +9,7 @@ from src.data_collection.season_stat_collector import fetch_nba_team_stats
 
 
 def main():
-    season = '2022-23'
+    season = '2023-24'
 
     # Fetch and preprocess NBA team statistics
     team_stats_df = fetch_nba_team_stats(season)

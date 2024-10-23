@@ -7,11 +7,16 @@ from src.data_collection.season_stat_collector import fetch_nba_team_stats
 
 
 def main():
-    season = '2024-25'  # Current season
+    season = '2024-25'
+    previous_season = '2023-24'
     game_date = date.today()
-
-    team_stats_df = fetch_nba_team_stats(season)
+    team_stats_df = fetch_nba_team_stats(previous_season)
     specific_date_games = fetch_games_for_date(season, game_date)
+
+    if specific_date_games.empty:
+        print(f"No games scheduled or data unavailable for {game_date}.")
+        return
+
     combined_data = prepare_data_for_date(specific_date_games, team_stats_df)
 
     # Ensure the features are in the same format as the training data
