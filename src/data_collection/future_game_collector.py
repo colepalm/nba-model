@@ -3,14 +3,11 @@ import json
 import pandas as pd
 from nba_api.stats.endpoints import scoreboardv2
 
-from src.data_collection.previous_game_collector import identify_opponents, prepare_data
 
-
-def fetch_games_for_date(season, game_date):
+def fetch_games_for_date(game_date):
     """
     Fetches games scheduled for a specific date in the season.
 
-    :param season: The season (e.g., '2023-24').
     :param game_date: The date for which to fetch games (e.g., '2023-10-22').
     :return: DataFrame with games scheduled on the specified date.
     """
@@ -40,11 +37,38 @@ def fetch_games_for_date(season, game_date):
     return games_df
 
 
-def prepare_data_for_date(games_df, team_stats_df):
-    # Identify opponents for the games on the specific date
-    opponents_df = identify_opponents(games_df)
+def create_game_data_df(future_games_df):
+    home_games = future_games_df[['GAME_ID', 'GAME_DATE_EST', 'HOME_TEAM_ID']].copy()
+    home_games.rename(columns={'HOME_TEAM_ID': 'TEAM_ID_x', 'GAME_DATE_EST': 'GAME_DATE'}, inplace=True)
+    home_games['MATCHUP'] = 'vs.'
 
-    # Prepare the data by merging team statistics
-    combined_data = prepare_data(games_df, team_stats_df, opponents_df)
+    visitor_games = future_games_df[['GAME_ID', 'GAME_DATE_EST', 'VISITOR_TEAM_ID']].copy()
+    visitor_games.rename(columns={'VISITOR_TEAM_ID': 'TEAM_ID_x', 'GAME_DATE_EST': 'GAME_DATE'}, inplace=True)
+    visitor_games['MATCHUP'] = '@'
 
-    return combined_data
+    game_data_df = pd.concat([home_games, visitor_games], ignore_index=True)
+
+    return game_data_df
+
+def create_opponents_df(future_games_df):
+    opponent_mappings = []
+
+    for index, row in future_games_df.iterrows():
+        game_id = row['GAME_ID']
+        home_team_id = row['HOME_TEAM_ID']
+        visitor_team_id = row['VISITOR_TEAM_ID']
+
+        opponent_mappings.append({
+            'GAME_ID': game_id,
+            'TEAM_ID': home_team_id,
+            'OPPONENT_TEAM_ID': visitor_team_id
+        })
+
+        opponent_mappings.append({
+            'GAME_ID': game_id,
+            'TEAM_ID': visitor_team_id,
+            'OPPONENT_TEAM_ID': home_team_id
+        })
+
+    opponents_df = pd.DataFrame(opponent_mappings)
+    return opponents_df

@@ -1,26 +1,21 @@
 import joblib
 import pandas as pd
-from sklearn.model_selection import StratifiedShuffleSplit, train_test_split
+from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-from src.data_collection.previous_game_collector import fetch_game_data, identify_opponents, prepare_data
+from src.data_collection.prepare_data import prepare_full_df
+from src.data_collection.previous_game_collector import fetch_game_data, identify_opponents
 from src.data_collection.season_stat_collector import fetch_nba_team_stats
 
 
 def main():
     season = '2023-24'
 
-    # Fetch and preprocess NBA team statistics
     team_stats_df = fetch_nba_team_stats(season)
-
-    # Fetch and preprocess game data
     game_data_df = fetch_game_data(season)
-
-    # Fetch opponents
     opponents_df = identify_opponents(game_data_df)
-
-    combined_data = prepare_data(game_data_df, team_stats_df, opponents_df)
+    combined_data = prepare_full_df(game_data_df, team_stats_df, opponents_df)
 
     combined_data.to_csv('combined_data.csv', index=False)
     print("Combined data saved to combined_data.csv")
