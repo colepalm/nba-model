@@ -45,6 +45,8 @@ def main():
     model = joblib.load('nba_game_predictor.pkl')
     print("Model loaded from nba_game_predictor.pkl")
 
+    print("PREDICT columns:", X_specific_date.columns.tolist())
+
     predictions = model.predict(X_specific_date)
 
     combined_data['Predicted_Outcome'] = predictions

@@ -54,6 +54,8 @@ def main():
     X_train, X_test = X[train_index], X[test_index]
     y_train, y_test = y[train_index], y[test_index]
 
+    print("TRAIN columns:", X_train.columns.tolist())
+
     # Verify no overlapping game IDs
     train_game_ids_set = set(train_game_ids)
     test_game_ids_set = set(test_game_ids)
