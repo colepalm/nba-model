@@ -2,9 +2,9 @@ from datetime import date
 
 import joblib
 
-from src.data_collection.future_game_collector import fetch_games_for_date, create_game_data_df, \
-    create_opponents_df
+from src.data_collection.future_game_collector import fetch_games_for_date, create_game_data_df
 from src.data_collection.prepare_data import prepare_full_df
+from src.data_collection.previous_game_collector import identify_opponents
 from src.data_collection.season_stat_collector import fetch_nba_team_stats
 
 
@@ -19,7 +19,7 @@ def main():
         return
 
     game_data_df = create_game_data_df(scoreboard_df)
-    opponents_df = create_opponents_df(scoreboard_df)
+    opponents_df = identify_opponents(game_data_df)
 
     combined_data = prepare_full_df(game_data_df, team_stats_df, opponents_df)
 

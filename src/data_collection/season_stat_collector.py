@@ -1,3 +1,4 @@
+import os
 import time
 import pandas as pd
 
@@ -8,7 +9,23 @@ from sklearn.preprocessing import StandardScaler
 max_retries = 5
 timeout_seconds = 30
 
+CACHE_DIR = "cache"
+
 def fetch_nba_team_stats(season):
+    fetch_team_stats_cached(season)
+
+def fetch_team_stats_cached(season):
+    cache_file = os.path.join(CACHE_DIR, f"team_stats_{season}.csv")
+    if os.path.exists(cache_file):
+        print(f"Loading cached team stats for {season} from {cache_file}")
+        return pd.read_csv(cache_file)
+
+    print(f"No cache found for {season}, fetching from API...")
+    df = fetch_nba_team_stats_api(season)
+    df.to_csv(cache_file, index=False)
+    return df
+
+def fetch_nba_team_stats_api(season):
     nba_teams = teams.get_teams()
 
     team_stats_list = []

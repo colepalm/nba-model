@@ -1,5 +1,13 @@
+# IDE
 .idea
+
+# Python stuff
 bin
 venv
 lib
+
+# Model
 nba_game_predictor.pkl
+
+# Cache
+cache
