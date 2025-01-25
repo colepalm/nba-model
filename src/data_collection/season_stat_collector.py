@@ -12,7 +12,7 @@ timeout_seconds = 30
 CACHE_DIR = "cache"
 
 def fetch_nba_team_stats(season):
-    fetch_team_stats_cached(season)
+    return fetch_team_stats_cached(season)
 
 def fetch_team_stats_cached(season):
     cache_file = os.path.join(CACHE_DIR, f"team_stats_{season}.csv")

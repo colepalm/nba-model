@@ -37,17 +37,10 @@ def fetch_games_for_date(game_date):
     return games_df
 
 
-def create_game_data_df(future_games_df):
-    home_games = future_games_df[['GAME_ID', 'GAME_DATE_EST', 'HOME_TEAM_ID']].copy()
-    home_games.rename(columns={'HOME_TEAM_ID': 'TEAM_ID_x', 'GAME_DATE_EST': 'GAME_DATE'}, inplace=True)
-    home_games['MATCHUP'] = 'vs.'
-
-    visitor_games = future_games_df[['GAME_ID', 'GAME_DATE_EST', 'VISITOR_TEAM_ID']].copy()
-    visitor_games.rename(columns={'VISITOR_TEAM_ID': 'TEAM_ID_x', 'GAME_DATE_EST': 'GAME_DATE'}, inplace=True)
-    visitor_games['MATCHUP'] = '@'
-
-    game_data_df = pd.concat([home_games, visitor_games], ignore_index=True)
-
+def create_game_data_df(scoreboard_df):
+    home_df = scoreboard_df[['GAME_ID', 'HOME_TEAM_ID']].rename(columns={'HOME_TEAM_ID': 'TEAM_ID'})
+    away_df = scoreboard_df[['GAME_ID', 'VISITOR_TEAM_ID']].rename(columns={'VISITOR_TEAM_ID': 'TEAM_ID'})
+    game_data_df = pd.concat([home_df, away_df], ignore_index=True)
     return game_data_df
 
 def create_opponents_df(future_games_df):
