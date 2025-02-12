@@ -1,12 +1,5 @@
 import pandas as pd
 
-from nba_api.stats.endpoints import leaguegamelog
-
-
-def fetch_game_data(season):
-    game_data = leaguegamelog.LeagueGameLog(season=season)
-    games = game_data.get_data_frames()[0]
-    return games
 
 def identify_opponents(game_log):
     game_log = game_log.sort_values(by='GAME_ID')

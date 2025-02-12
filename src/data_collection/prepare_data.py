@@ -1,35 +1,32 @@
 import pandas as pd
 
 def prepare_full_df(game_data_df, team_stats_df, opponents_df):
+    # Merge the opponents info first (this assumes game_data_df has a 'TEAM_ID' column)
     game_with_opponents = pd.merge(
         game_data_df, opponents_df,
         on=['GAME_ID', 'TEAM_ID'],
         how='left'
     )
+    print("Step 1 Completed: After Opponent Merge Shape:", game_with_opponents.shape)
 
+    # Merge main team stats
     game_with_team_stats = pd.merge(
         game_with_opponents,
         team_stats_df,
         left_on='TEAM_ID',
         right_on='TEAM_ID',
-        suffixes=('_team_game', '_team_season'),
+        suffixes=('', ''),  # No automatic suffix because no conflict exists
         how='left'
     )
 
-    columns_to_rename = {
-        'TEAM_NAME': 'TEAM_NAME_team_game',
-        'FG_PCT': 'FG_PCT_team_game',
-        'FG3_PCT': 'FG3_PCT_team_game',
-        'FT_PCT': 'FT_PCT_team_game',
-        'REB': 'REB_team_game',
-        'AST': 'AST_team_game',
-        'TOV': 'TOV_team_game',
-        'STL': 'STL_team_game',
-        'BLK': 'BLK_team_game',
-        'PTS': 'PTS_team_game'
-    }
-    game_with_team_stats.rename(columns=columns_to_rename, inplace=True)
+    # Manually rename the columns from team_stats_df to add a _team_game suffix.
+    # List all the columns that come from team_stats_df that you want to rename:
+    stats_cols = ['TEAM_NAME', 'FG_PCT', 'FG3_PCT', 'FT_PCT', 'REB', 'AST', 'TOV', 'STL', 'BLK', 'PTS']
+    rename_dict = {col: f"{col}_team_game" for col in stats_cols if col in game_with_team_stats.columns}
+    game_with_team_stats.rename(columns=rename_dict, inplace=True)
+    print("Step 2 Completed: After Main Team Stats Merge, columns:", game_with_team_stats.columns.tolist())
 
+    # Merge opponent team stats with automatic suffixes now:
     game_with_full_stats = pd.merge(
         game_with_team_stats,
         team_stats_df,
@@ -38,6 +35,6 @@ def prepare_full_df(game_data_df, team_stats_df, opponents_df):
         suffixes=('_opponent_game', '_opponent_season'),
         how='left'
     )
+    print("Step 3 Completed: After Opponent Stats Merge, columns:", game_with_full_stats.columns.tolist())
 
-    print("Columns after opponent merge:", game_with_full_stats.columns.tolist())
     return game_with_full_stats

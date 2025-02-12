@@ -4,44 +4,42 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
+from src.data_collection.future_game_collector import fetch_games_for_date, create_game_data_df
 from src.data_collection.prepare_data import prepare_full_df
-from src.data_collection.previous_game_collector import fetch_game_data, identify_opponents
+from src.data_collection.previous_game_collector import identify_opponents
 from src.data_collection.season_stat_collector import fetch_nba_team_stats
 
 
 def main():
     season = '2023-24'
 
-    team_stats_df = fetch_nba_team_stats(season)
-    game_data_df = fetch_game_data(season)
+    all_dates = pd.date_range("2023-10-18", "2024-04-10")
+    scoreboard_dfs = []
+    for date in all_dates:
+        df = fetch_games_for_date(date)
+        scoreboard_dfs.append(df)
+
+    historical_scoreboard_df = pd.concat(scoreboard_dfs, ignore_index=True)
+    game_data_df = create_game_data_df(historical_scoreboard_df)
     opponents_df = identify_opponents(game_data_df)
+
+    team_stats_df = fetch_nba_team_stats(season)
+
     combined_data = prepare_full_df(game_data_df, team_stats_df, opponents_df)
 
     combined_data.to_csv('combined_data.csv', index=False)
     print("Combined data saved to combined_data.csv")
 
-    # Features: Exclude PLUS_MINUS and any other potential leakage features
     X = combined_data.drop(
         [
-            'GAME_DATE',
             'GAME_ID',
-            'MATCHUP',
-            'MIN',
             'OPPONENT_TEAM_ID',
-            'TEAM_ABBREVIATION',
             'TEAM_ID_opponent_game',
             'TEAM_ID_opponent_season',
-            'TEAM_ID_x',
-            'TEAM_ID_y',
             'TEAM_NAME',
             'TEAM_NAME_team_game',
-            'TEAM_NAME_team_season',
-            'VIDEO_AVAILABLE',
-            'WL',
-            'PLUS_MINUS'
          ], axis=1)
 
-    # Target variable
     y = combined_data['WL'].map({'W': 1, 'L': 0})
 
     # Ensure no overlapping game IDs in train and test sets
@@ -62,13 +60,14 @@ def main():
     overlap = train_game_ids_set.intersection(test_game_ids_set)
     print("Number of overlapping games between train and test sets:", len(overlap))
 
-    # Check class balance
     print("Training set class distribution:", y_train.value_counts())
     print("Test set class distribution:", y_test.value_counts())
 
     # Create and train model
     model = RandomForestClassifier(random_state=42)
-    model.fit(X_train, y_train)
+    X_train_no_na = X_train.dropna()
+    y_train_no_na = y_train[X_train_no_na.index]
+    model.fit(X_train_no_na, y_train_no_na)
 
     # Evaluate the model
     y_pred = model.predict(X_test)
