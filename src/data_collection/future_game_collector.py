@@ -38,14 +38,31 @@ def fetch_games_for_date(game_date):
 
 
 def create_game_data_df(scoreboard_df):
-    home_df = scoreboard_df[['GAME_ID', 'HOME_TEAM_ID', 'HOME_TEAM_WL']].rename(
-        columns={'HOME_TEAM_ID': 'TEAM_ID', 'HOME_TEAM_WL': 'WL'}
+    home_df = scoreboard_df[[
+        'GAME_ID', 'HOME_TEAM_ID', 'HOME_TEAM_WL', 'HOME_TEAM_FG_PCT', 'HOME_TEAM_REB', 'HOME_TEAM_AST'
+    ]].rename(
+        columns={
+            'HOME_TEAM_ID': 'TEAM_ID',
+            'HOME_TEAM_WL': 'WL',
+            'HOME_TEAM_FG_PCT': 'FG_PCT',
+            'HOME_TEAM_REB': 'REB',
+            'HOME_TEAM_AST': 'AST'
+        }
     )
 
-    away_df = scoreboard_df[['GAME_ID', 'VISITOR_TEAM_ID', 'VISITOR_TEAM_WL']].rename(
-        columns={'VISITOR_TEAM_ID': 'TEAM_ID', 'VISITOR_TEAM_WL': 'WL'}
+    away_df = scoreboard_df[[
+        'GAME_ID', 'VISITOR_TEAM_ID', 'VISITOR_TEAM_WL', 'VISITOR_TEAM_FG_PCT', 'VISITOR_TEAM_REB', 'VISITOR_TEAM_AST'
+    ]].rename(
+        columns={
+            'VISITOR_TEAM_ID': 'TEAM_ID',
+            'VISITOR_TEAM_WL': 'WL',
+            'VISITOR_TEAM_FG_PCT': 'FG_PCT',
+            'VISITOR_TEAM_REB': 'REB',
+            'VISITOR_TEAM_AST': 'AST'
+        }
     )
 
+    # Combine home and away data
     game_data_df = pd.concat([home_df, away_df], ignore_index=True)
 
     return game_data_df
