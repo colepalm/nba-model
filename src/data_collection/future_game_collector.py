@@ -38,34 +38,36 @@ def fetch_games_for_date(game_date):
 
 
 def create_game_data_df(scoreboard_df):
-    home_df = scoreboard_df[[
-        'GAME_ID', 'HOME_TEAM_ID', 'HOME_TEAM_WL', 'HOME_TEAM_FG_PCT', 'HOME_TEAM_REB', 'HOME_TEAM_AST'
-    ]].rename(
-        columns={
-            'HOME_TEAM_ID': 'TEAM_ID',
-            'HOME_TEAM_WL': 'WL',
-            'HOME_TEAM_FG_PCT': 'FG_PCT',
-            'HOME_TEAM_REB': 'REB',
-            'HOME_TEAM_AST': 'AST'
-        }
-    )
+    # List of expected columns with fallback logic
+    columns_needed = {
+        'HOME_TEAM_ID': 'HOME_TEAM_ID',
+        'VISITOR_TEAM_ID': 'VISITOR_TEAM_ID',
+        'HOME_TEAM_WL': 'WL',  # Original column name
+        'VISITOR_TEAM_WL': 'WL',
+        'HOME_TEAM_FG_PCT': 'FG_PCT',
+        'VISITOR_TEAM_FG_PCT': 'FG_PCT',
+        'HOME_TEAM_REB': 'REB',
+        'VISITOR_TEAM_REB': 'REB',
+        'HOME_TEAM_AST': 'AST',
+        'VISITOR_TEAM_AST': 'AST'
+    }
 
-    away_df = scoreboard_df[[
-        'GAME_ID', 'VISITOR_TEAM_ID', 'VISITOR_TEAM_WL', 'VISITOR_TEAM_FG_PCT', 'VISITOR_TEAM_REB', 'VISITOR_TEAM_AST'
-    ]].rename(
-        columns={
-            'VISITOR_TEAM_ID': 'TEAM_ID',
-            'VISITOR_TEAM_WL': 'WL',
-            'VISITOR_TEAM_FG_PCT': 'FG_PCT',
-            'VISITOR_TEAM_REB': 'REB',
-            'VISITOR_TEAM_AST': 'AST'
-        }
-    )
+    # Create home and away data with fallback columns
+    def create_team_df(is_home=True):
+        prefix = 'HOME_TEAM_' if is_home else 'VISITOR_TEAM_'
+        return scoreboard_df[[
+            'GAME_ID',
+            columns_needed[f'{prefix}ID'],
+            *[col for col in columns_needed if col.startswith(prefix)]
+        ]].rename(columns={
+            columns_needed[f'{prefix}ID']: 'TEAM_ID',
+            **{k: v for k, v in columns_needed.items() if k.startswith(prefix)}
+        })
 
-    # Combine home and away data
-    game_data_df = pd.concat([home_df, away_df], ignore_index=True)
+    home_df = create_team_df(is_home=True)
+    away_df = create_team_df(is_home=False)
 
-    return game_data_df
+    return pd.concat([home_df, away_df], ignore_index=True)
 
 def create_opponents_df(future_games_df):
     opponent_mappings = []

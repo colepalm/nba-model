@@ -1,32 +1,49 @@
+import os
 import joblib
 import pandas as pd
+
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-from src.data_collection.future_game_collector import fetch_games_for_date, create_game_data_df
+from src.cache_manager import CacheManager
+from src.data_collection.future_game_collector import create_game_data_df
 from src.data_collection.prepare_data import prepare_full_df
-from src.data_collection.previous_game_collector import identify_opponents
+from src.data_collection.previous_game_collector import identify_opponents, fetch_and_process_games
 from src.data_collection.season_stat_collector import fetch_nba_team_stats
 
 
 def main():
     season = '2023-24'
+    cm = CacheManager()
 
-    all_dates = pd.date_range("2023-10-18", "2024-04-10")
-    scoreboard_dfs = []
-    for date in all_dates:
-        df = fetch_games_for_date(date)
-        scoreboard_dfs.append(df)
+    # Try to get cached processed data
+    processed_key = f"processed_data_{season}"
+    combined_data = cm.get(processed_key)
 
-    historical_scoreboard_df = pd.concat(scoreboard_dfs, ignore_index=True)
-    game_data_df = create_game_data_df(historical_scoreboard_df)
-    opponents_df = identify_opponents(game_data_df)
+    if combined_data is None:
+        print("Cache miss - processing fresh data")
 
-    team_stats_df = fetch_nba_team_stats(season)
+        # Fetch and cache raw components
+        historical_key = f"historical_games_{season}"
+        historical_raw = cm.get(historical_key) or fetch_and_process_games()
 
-    combined_data = prepare_full_df(game_data_df, team_stats_df, opponents_df)
+        stats_key = f"team_stats_{season}"
+        team_stats_df = cm.get(stats_key) or fetch_nba_team_stats(season)
 
+        # Process data
+        game_data_df = create_game_data_df(historical_raw)
+        opponents_df = identify_opponents(game_data_df)
+        combined_data = prepare_full_df(game_data_df, team_stats_df, opponents_df)
+
+        # Cache processed data
+        cm.set(processed_key, combined_data)
+        cm.set(historical_key, historical_raw)  # Cache raw data for future processing
+        cm.set(stats_key, team_stats_df)
+    else:
+        print("Using cached processed data")
+
+    # Save combined data
     combined_data.to_csv('combined_data.csv', index=False)
     print("Combined data saved to combined_data.csv")
 
