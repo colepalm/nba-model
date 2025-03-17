@@ -1,6 +1,7 @@
 import json
-
 import pandas as pd
+
+from nba_api.stats.library.http import NBAStatsHTTP
 from nba_api.stats.endpoints import scoreboardv2
 
 
@@ -91,3 +92,20 @@ def create_opponents_df(future_games_df):
 
     opponents_df = pd.DataFrame(opponent_mappings)
     return opponents_df
+
+class CustomNBAStatsHTTP(NBAStatsHTTP):
+    def send_api_request(self, endpoint, parameters, referer=None, timeout=45, headers=None):
+        headers = headers or {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+            'Referer': 'https://www.nba.com/'
+        }
+        return super().send_api_request(
+            endpoint,
+            parameters,
+            referer=referer,
+            timeout=timeout,
+            headers=headers
+        )
+
+# Replace the default HTTP client
+NBAStatsHTTP = CustomNBAStatsHTTP

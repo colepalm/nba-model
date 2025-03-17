@@ -1,5 +1,4 @@
 import time
-from datetime import datetime
 
 import pandas as pd
 
@@ -23,7 +22,7 @@ def identify_opponents(game_log):
     return opponents_df
 
 
-def fetch_and_process_games(start_date="2023-10-18", end_date="2024-04-10", max_retries=3):
+def fetch_and_process_games(start_date="2023-10-18", end_date="2024-04-10", max_retries=5):
     """
     Fetches and processes historical game data from NBA API
     Returns: DataFrame with processed game data
@@ -42,27 +41,21 @@ def fetch_and_process_games(start_date="2023-10-18", end_date="2024-04-10", max_
                 df = fetch_games_for_date(date)
 
                 if not df.empty:
-                    # Add common metadata
-                    df['FETCH_DATE'] = datetime.today().date()
                     scoreboard_dfs.append(df)
                     success = True
                 else:
                     print(f"No games found for {date_str}")
-                    success = True  # Consider empty response valid
+                    success = True
 
             except Exception as e:
                 print(f"Error fetching {date_str}: {str(e)}")
+                if retries >= max_retries:
+                    print(f"Permanent failure for {date_str}, skipping...")
+                    break
+
                 retries += 1
-                time.sleep(2 ** retries)  # Exponential backoff
+                sleep_time = min(2 ** retries, 60)  # Cap at 60 seconds
+                print(f"Retrying in {sleep_time} seconds...")
+                time.sleep(sleep_time)
 
-        if not success:
-            print(f"Failed to fetch {date_str} after {max_retries} attempts")
-
-    # Process raw scoreboard data
-    raw_df = pd.concat(scoreboard_dfs, ignore_index=True) if scoreboard_dfs else pd.DataFrame()
-
-    if not raw_df.empty:
-        processed_df = create_game_data_df(raw_df)
-        return processed_df
-    else:
-        raise ValueError("No game data was successfully fetched")
+    return pd.concat(scoreboard_dfs, ignore_index=True) if scoreboard_dfs else pd.DataFrame()

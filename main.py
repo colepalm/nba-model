@@ -24,9 +24,24 @@ def main():
     if combined_data is None:
         print("Cache miss - processing fresh data")
 
-        # Fetch and cache raw components
         historical_key = f"historical_games_{season}"
-        historical_raw = cm.get(historical_key) or fetch_and_process_games()
+        historical_raw = cm.get_safe(historical_key)
+        fresh_dates = pd.date_range("2023-10-18", "2024-04-10")
+
+        if not historical_raw.empty:
+            cached_dates = pd.to_datetime(historical_raw['GAME_DATE'].unique())
+            missing_dates = [d for d in fresh_dates if d not in cached_dates]
+            if missing_dates:
+                print(f"Fetching {len(missing_dates)} missing dates")
+                new_data = fetch_and_process_games(
+                    start_date=missing_dates[0],
+                    end_date=missing_dates[-1]
+                )
+                historical_raw = pd.concat([historical_raw, new_data])
+
+        # If no cached data at all
+        if historical_raw.empty:
+            historical_raw = fetch_and_process_games()
 
         stats_key = f"team_stats_{season}"
         team_stats_df = cm.get(stats_key) or fetch_nba_team_stats(season)
