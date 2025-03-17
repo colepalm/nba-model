@@ -1,3 +1,5 @@
+import json
+
 import pandas as pd
 
 from nba_api.stats.library.http import NBAStatsHTTP
@@ -15,33 +17,73 @@ def fetch_games_for_date(date):
         date_str = date.strftime('%m/%d/%Y')
         scoreboard = scoreboardv2.ScoreboardV2(
             game_date=date_str,
-            day_offset='0',
-            league_id='00'
+            league_id='00',
+            day_offset=0
         )
 
-        # Get available data components
-        data = {}
-        for component in ['GameHeader', 'LineScore', 'TeamStats']:
-            try:
-                df = scoreboard.get_data_frames()[0]
-                if not df.empty:
-                    data[component] = df
-            except Exception as e:
-                print(f"Warning: {component} data unavailable for {date_str}")
+        response_json = scoreboard.get_json()
+        response = json.loads(response_json)
 
-        # Merge available components
-        merged_df = pd.DataFrame()
-        if 'GameHeader' in data:
-            merged_df = data['GameHeader']
-            if 'LineScore' in data:
-                merged_df = merged_df.merge(data['LineScore'], on='GAME_ID')
-            if 'TeamStats' in data:
-                merged_df = merged_df.merge(data['TeamStats'], on='GAME_ID')
+        result_sets = response.get('resultSets', [])
+
+        # Initialize empty DataFrames for components
+        game_header = pd.DataFrame()
+        line_score = pd.DataFrame()
+
+        # Parse result sets
+        for result_set in result_sets:
+            if result_set['name'] == 'GameHeader':
+                game_header = pd.DataFrame(
+                    result_set['rowSet'],
+                    columns=result_set['headers']
+                )
+            elif result_set['name'] == 'LineScore':
+                line_score = pd.DataFrame(
+                    result_set['rowSet'],
+                    columns=result_set['headers']
+                )
+
+        # Check if we have the minimum required data
+        if game_header.empty:
+            print(f"No 'GameHeader' data found for date: {date_str}")
+            return pd.DataFrame()
+
+        # Merge GameHeader with LineScore if available
+        if not line_score.empty:
+            merged_df = game_header.merge(
+                line_score,
+                on='GAME_ID',
+                how='left',
+                suffixes=('', '_LINE')
+            )
+        else:
+            merged_df = game_header.copy()
+            print(f"No 'LineScore' data found for date: {date_str}")
+
+            # Add date context
+            merged_df['GAME_DATE'] = pd.to_datetime(date_str)
+
+            # Add fallback columns if necessary
+            required_columns = {
+                'HOME_TEAM_WL': 'W',
+                'HOME_TEAM_FG_PCT': 0.0,
+                'HOME_TEAM_REB': 0,
+                'HOME_TEAM_AST': 0,
+                'VISITOR_TEAM_WL': 'L',
+                'VISITOR_TEAM_FG_PCT': 0.0,
+                'VISITOR_TEAM_REB': 0,
+                'VISITOR_TEAM_AST': 0
+            }
+
+            for col, default in required_columns.items():
+                if col not in merged_df.columns:
+                    print(f"Creating fallback column {col}")
+                    merged_df[col] = default
 
         return merged_df
 
     except Exception as e:
-        print(f"Critical error fetching {date_str}: {str(e)}")
+        print(f"Error fetching games for {date_str}: {str(e)}")
         return pd.DataFrame()
 
 
