@@ -39,15 +39,23 @@ def main():
                 )
                 historical_raw = pd.concat([historical_raw, new_data])
 
-        # If no cached data at all
         if historical_raw.empty:
             historical_raw = fetch_and_process_games()
+
+        required_columns = ['GAME_ID', 'TEAM_ID']
+        missing = [col for col in required_columns if col not in historical_raw.columns]
+        if missing:
+            raise ValueError(f"Missing critical columns in raw data: {missing}")
 
         stats_key = f"team_stats_{season}"
         team_stats_df = cm.get(stats_key) or fetch_nba_team_stats(season)
 
         # Process data
         game_data_df = create_game_data_df(historical_raw)
+
+        if 'WL' not in game_data_df.columns:
+            raise ValueError("Win/Loss data not found in processed data")
+
         opponents_df = identify_opponents(game_data_df)
         combined_data = prepare_full_df(game_data_df, team_stats_df, opponents_df)
 

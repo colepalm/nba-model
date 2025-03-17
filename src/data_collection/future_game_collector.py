@@ -1,74 +1,95 @@
-import json
 import pandas as pd
 
 from nba_api.stats.library.http import NBAStatsHTTP
 from nba_api.stats.endpoints import scoreboardv2
 
 
-def fetch_games_for_date(game_date):
+def fetch_games_for_date(date):
     """
     Fetches games scheduled for a specific date in the season.
 
-    :param game_date: The date for which to fetch games (e.g., '2023-10-22').
+    :param date: The date for which to fetch games (e.g., '2023-10-22').
     :return: DataFrame with games scheduled on the specified date.
     """
-    game_date_formatted = pd.to_datetime(game_date).strftime('%m/%d/%Y')
-    scoreboard = scoreboardv2.ScoreboardV2(
-        game_date=game_date_formatted,
-        league_id='00',
-        day_offset=0
-    )
-    response_json = scoreboard.get_json()
-    response = json.loads(response_json)
+    try:
+        date_str = date.strftime('%m/%d/%Y')
+        scoreboard = scoreboardv2.ScoreboardV2(
+            game_date=date_str,
+            day_offset='0',
+            league_id='00'
+        )
 
-    result_sets = response.get('resultSets', [])
-    games_df = pd.DataFrame()
+        # Get available data components
+        data = {}
+        for component in ['GameHeader', 'LineScore', 'TeamStats']:
+            try:
+                df = scoreboard.get_data_frames()[0]
+                if not df.empty:
+                    data[component] = df
+            except Exception as e:
+                print(f"Warning: {component} data unavailable for {date_str}")
 
-    for result_set in result_sets:
-        if result_set['name'] == 'GameHeader':
-            headers = result_set['headers']
-            rows = result_set['rowSet']
-            games_df = pd.DataFrame(rows, columns=headers)
-            break
+        # Merge available components
+        merged_df = pd.DataFrame()
+        if 'GameHeader' in data:
+            merged_df = data['GameHeader']
+            if 'LineScore' in data:
+                merged_df = merged_df.merge(data['LineScore'], on='GAME_ID')
+            if 'TeamStats' in data:
+                merged_df = merged_df.merge(data['TeamStats'], on='GAME_ID')
 
-    if games_df.empty:
-        print(f"No 'GameHeader' data found for date: {game_date_formatted}")
+        return merged_df
+
+    except Exception as e:
+        print(f"Critical error fetching {date_str}: {str(e)}")
         return pd.DataFrame()
-
-    return games_df
 
 
 def create_game_data_df(scoreboard_df):
-    # List of expected columns with fallback logic
-    columns_needed = {
-        'HOME_TEAM_ID': 'HOME_TEAM_ID',
-        'VISITOR_TEAM_ID': 'VISITOR_TEAM_ID',
-        'HOME_TEAM_WL': 'WL',  # Original column name
-        'VISITOR_TEAM_WL': 'WL',
-        'HOME_TEAM_FG_PCT': 'FG_PCT',
-        'VISITOR_TEAM_FG_PCT': 'FG_PCT',
-        'HOME_TEAM_REB': 'REB',
-        'VISITOR_TEAM_REB': 'REB',
-        'HOME_TEAM_AST': 'AST',
-        'VISITOR_TEAM_AST': 'AST'
+    """Create unified game data DataFrame with flexible column handling"""
+    # Define expected column patterns
+    column_map = {
+        'HOME_TEAM_': {
+            'id': 'HOME_TEAM_ID',
+            'stats': ['WL', 'FG_PCT', 'FG3_PCT', 'FT_PCT', 'REB', 'AST', 'TOV', 'STL', 'BLK', 'PTS']
+        },
+        'VISITOR_TEAM_': {
+            'id': 'VISITOR_TEAM_ID',
+            'stats': ['WL', 'FG_PCT', 'FG3_PCT', 'FT_PCT', 'REB', 'AST', 'TOV', 'STL', 'BLK', 'PTS']
+        }
     }
 
-    # Create home and away data with fallback columns
-    def create_team_df(is_home=True):
-        prefix = 'HOME_TEAM_' if is_home else 'VISITOR_TEAM_'
-        return scoreboard_df[[
-            'GAME_ID',
-            columns_needed[f'{prefix}ID'],
-            *[col for col in columns_needed if col.startswith(prefix)]
-        ]].rename(columns={
-            columns_needed[f'{prefix}ID']: 'TEAM_ID',
-            **{k: v for k, v in columns_needed.items() if k.startswith(prefix)}
-        })
+    dfs = []
 
-    home_df = create_team_df(is_home=True)
-    away_df = create_team_df(is_home=False)
+    for prefix, config in column_map.items():
+        # Verify available columns
+        available_stats = []
+        for stat in config['stats']:
+            col_name = f"{prefix}{stat}"
+            if col_name in scoreboard_df.columns:
+                available_stats.append(stat)
+            else:
+                print(f"Warning: Column {col_name} not found, excluding from dataset")
 
-    return pd.concat([home_df, away_df], ignore_index=True)
+        # Create base DataFrame
+        team_df = scoreboard_df[['GAME_ID', config['id']]].copy()
+        team_df.rename(columns={config['id']: 'TEAM_ID'}, inplace=True)
+
+        # Add available stats
+        for stat in available_stats:
+            src_col = f"{prefix}{stat}"
+            team_df[stat] = scoreboard_df[src_col]
+
+        dfs.append(team_df)
+
+    # Combine home and visitor data
+    game_data_df = pd.concat(dfs, ignore_index=True)
+
+    # Add essential metadata
+    if 'GAME_DATE' in scoreboard_df.columns:
+        game_data_df['GAME_DATE'] = scoreboard_df['GAME_DATE']
+
+    return game_data_df
 
 def create_opponents_df(future_games_df):
     opponent_mappings = []
