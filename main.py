@@ -50,18 +50,25 @@ def main():
         stats_key = f"team_stats_{season}"
         team_stats_df = cm.get(stats_key) or fetch_nba_team_stats(season)
 
-        # Process data
+        # Process raw data into team-based format
         game_data_df = create_game_data_df(historical_raw)
 
-        if 'WL' not in game_data_df.columns:
-            raise ValueError("Win/Loss data not found in processed data")
+        if game_data_df.empty:
+            raise ValueError("No game data available for processing")
 
+        # Add opponent information
         opponents_df = identify_opponents(game_data_df)
-        combined_data = prepare_full_df(game_data_df, team_stats_df, opponents_df)
+
+        # Merge with team stats
+        combined_data = prepare_full_df(
+            game_data_df,
+            fetch_nba_team_stats(season),
+            opponents_df
+        )
 
         # Cache processed data
         cm.set(processed_key, combined_data)
-        cm.set(historical_key, historical_raw)  # Cache raw data for future processing
+        cm.set(historical_key, historical_raw)
         cm.set(stats_key, team_stats_df)
     else:
         print("Using cached processed data")

@@ -2,7 +2,7 @@ import time
 
 import pandas as pd
 
-from src.data_collection.future_game_collector import create_game_data_df, fetch_games_for_date
+from src.data_collection.future_game_collector import fetch_games_for_date
 
 
 def identify_opponents(game_log):
@@ -39,6 +39,7 @@ def fetch_and_process_games(start_date="2023-10-18", end_date="2024-04-10", max_
             try:
                 print(f"Fetching games for {date_str} (attempt {retries + 1})")
                 df = fetch_games_for_date(date)
+                print("Scoreboard columns:", df.columns.tolist())
 
                 if not df.empty:
                     scoreboard_dfs.append(df)
