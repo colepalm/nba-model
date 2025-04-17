@@ -1,4 +1,3 @@
-import os
 import joblib
 import pandas as pd
 
@@ -50,26 +49,19 @@ def main():
         stats_key = f"team_stats_{season}"
         team_stats_df = cm.get(stats_key) or fetch_nba_team_stats(season)
 
-        # Process raw data into team-based format
         game_data_df = create_game_data_df(historical_raw)
 
         if game_data_df.empty:
             raise ValueError("No game data available for processing")
 
-        # Add opponent information
         opponents_df = identify_opponents(game_data_df)
 
-        # Merge with team stats
         combined_data = prepare_full_df(
             game_data_df,
             fetch_nba_team_stats(season),
             opponents_df
         )
 
-        # Cache processed data
-        cm.set(processed_key, combined_data)
-        cm.set(historical_key, historical_raw)
-        cm.set(stats_key, team_stats_df)
     else:
         print("Using cached processed data")
 
@@ -77,19 +69,37 @@ def main():
     combined_data.to_csv('combined_data.csv', index=False)
     print("Combined data saved to combined_data.csv")
 
-    X = combined_data.drop(
-        [
-            'GAME_ID',
-            'OPPONENT_TEAM_ID',
-            'TEAM_ID_opponent_game',
-            'TEAM_ID_opponent_season',
-            'TEAM_NAME',
-            'TEAM_NAME_team_game',
-         ], axis=1)
+    # Feature engineering and target preparation
+    X, y, feature_cols = prepare_features(combined_data)
 
+    X_train, X_test, y_train, y_test = create_train_test_split(X, y, combined_data)
+
+    # Model training and evaluation
+    model = train_model(X_train, y_train)
+    evaluate_model(model, X_test, y_test, feature_cols)
+
+    # Check feature importances
+    feature_importances = model.feature_importances_
+    feature_names = X.columns
+    importance_df = pd.DataFrame({'Feature': feature_names, 'Importance': feature_importances})
+    importance_df = importance_df.sort_values(by='Importance', ascending=False)
+    print("Feature importances:\n", importance_df)
+
+    joblib.dump(model, 'nba_game_predictor.pkl')
+    print("Model saved to nba_game_predictor.pkl")
+
+def prepare_features(combined_data):
+    drop_cols = ['GAME_ID', 'OPPONENT_TEAM_ID', 'TEAM_ID_opponent_game',
+                 'TEAM_ID_opponent_season', 'TEAM_NAME', 'TEAM_NAME_team_game']
+
+    X = combined_data.drop(drop_cols, axis=1)
     y = combined_data['WL'].map({'W': 1, 'L': 0})
+    feature_cols = X.columns.tolist()
 
-    # Ensure no overlapping game IDs in train and test sets
+    return X, y, feature_cols
+
+
+def create_train_test_split(X, y, combined_data):
     game_ids = combined_data['GAME_ID'].unique()
     train_game_ids, test_game_ids = train_test_split(game_ids, test_size=0.2, random_state=42)
 
@@ -110,31 +120,42 @@ def main():
     print("Training set class distribution:", y_train.value_counts())
     print("Test set class distribution:", y_test.value_counts())
 
-    # Create and train model
-    model = RandomForestClassifier(random_state=42)
+    return X_train, X_test, y_train, y_test
+
+
+def train_model(X_train, y_train):
     X_train_no_na = X_train.dropna()
     y_train_no_na = y_train[X_train_no_na.index]
-    model.fit(X_train_no_na, y_train_no_na)
 
-    # Evaluate the model
+    # TODO: Consider hyperparameter tuning here
+    model = RandomForestClassifier(
+        n_estimators=100,
+        max_depth=None,
+        min_samples_split=2,
+        random_state=42
+    )
+    model.fit(X_train_no_na, y_train_no_na)
+    return model
+
+
+def evaluate_model(model, X_test, y_test, feature_cols):
+    # TODO: Consider handling missing values in test data consistently
     y_pred = model.predict(X_test)
+    y_proba = model.predict_proba(X_test)
+
     accuracy = accuracy_score(y_test, y_pred)
     report = classification_report(y_test, y_pred)
     conf_matrix = confusion_matrix(y_test, y_pred)
 
-    print(f'Accuracy: {accuracy}')
+    print(f'Accuracy: {accuracy:.4f}')
     print(f'Classification Report:\n{report}')
     print(f'Confusion Matrix:\n{conf_matrix}')
 
-    # Check feature importances
-    feature_importances = model.feature_importances_
-    feature_names = X.columns
-    importance_df = pd.DataFrame({'Feature': feature_names, 'Importance': feature_importances})
-    importance_df = importance_df.sort_values(by='Importance', ascending=False)
-    print("Feature importances:\n", importance_df)
-
-    joblib.dump(model, 'nba_game_predictor.pkl')
-    print("Model saved to nba_game_predictor.pkl")
+    return {
+        'accuracy': accuracy,
+        'classification_report': report,
+        'confusion_matrix': conf_matrix,
+    }
 
 if __name__ == "__main__":
     main()
