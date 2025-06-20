@@ -2,32 +2,45 @@ import json
 
 import pandas as pd
 
-from nba_api.stats.library.http import NBAStatsHTTP
 from nba_api.stats.endpoints import scoreboardv2
 
 
 def fetch_games_for_date(date):
     try:
-        date_str = date.strftime('%Y-%m-%d')  # Changed format to YYYY-MM-DD
-        scoreboard = scoreboardv2.ScoreboardV2(
-            game_date=date_str,
-            league_id='00',
-            day_offset=0
-        )
+        date_str = date.strftime('%m/%d/%Y')  # NBA API expects MM/DD/YYYY format
+        print(f"Fetching data for {date_str}")
 
-        response = json.loads(scoreboard.get_json())
+        # Try the normal API call first
+        try:
+            scoreboard = scoreboardv2.ScoreboardV2(
+                game_date=date_str,
+                league_id='00',
+                day_offset=0
+            )
+            response = json.loads(scoreboard.get_json())
+
+        except KeyError as e:
+            if 'WinProbability' in str(e):
+                print(f"WinProbability KeyError for {date_str} - this is expected for dates before April 10, 2025")
+                # For historical dates, we need to use a different approach
+                return fetch_games_historical_method(date, date_str)
+            else:
+                # Some other KeyError, re-raise it
+                raise e
+
+        # If we get here, the normal API call worked
         result_sets = response.get('resultSets', [])
-
         print(f"Available result sets: {[rs['name'] for rs in result_sets]}")
 
         line_score = next((rs for rs in result_sets if rs['name'] == 'LineScore'), None)
-        if line_score:
-            print(f"LineScore columns: {line_score['headers']}")
-
         game_header = next((rs for rs in result_sets if rs['name'] == 'GameHeader'), None)
 
         if not game_header or not line_score:
             print(f"Incomplete data for {date_str}")
+            return pd.DataFrame()
+
+        if not line_score['rowSet'] or not game_header['rowSet']:
+            print(f"No games found for {date_str}")
             return pd.DataFrame()
 
         # Create DataFrames
@@ -41,15 +54,95 @@ def fetch_games_for_date(date):
             how='left'
         )
 
-        # Add home/away flag using team ID comparison
         merged_df['IS_HOME'] = merged_df['TEAM_ID'] == merged_df['HOME_TEAM_ID']
-        merged_df['GAME_DATE'] = pd.to_datetime(date_str)
+        merged_df['GAME_DATE'] = pd.to_datetime(date.strftime('%Y-%m-%d'))
 
+        print(f"Successfully fetched {len(merged_df)} rows for {date_str}")
         return merged_df
 
     except Exception as e:
         print(f"Error fetching {date_str}: {str(e)}")
         return pd.DataFrame()
+
+
+def fetch_games_historical_method(date, date_str):
+    """
+    Alternative method for fetching historical games (pre-April 10, 2025)
+    Uses direct HTTP requests to bypass the nba_api library's WinProbability requirement
+    """
+    try:
+        import requests
+
+        print(f"Using historical method for {date_str}")
+
+        # Direct NBA API call
+        url = "https://stats.nba.com/stats/scoreboardV2"
+
+        headers = {
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Referer': 'https://www.nba.com/',
+            'Connection': 'keep-alive',
+        }
+
+        params = {
+            'GameDate': date_str,  # MM/DD/YYYY format
+            'LeagueID': '00',
+            'DayOffset': '0'
+        }
+
+        response = requests.get(url, headers=headers, params=params, timeout=30)
+
+        if response.status_code != 200:
+            print(f"HTTP error {response.status_code} for {date_str}")
+            return pd.DataFrame()
+
+        data = response.json()
+        result_sets = data.get('resultSets', [])
+
+        if not result_sets:
+            print(f"No result sets found for {date_str}")
+            return pd.DataFrame()
+
+        line_score = next((rs for rs in result_sets if rs.get('name') == 'LineScore'), None)
+        game_header = next((rs for rs in result_sets if rs.get('name') == 'GameHeader'), None)
+
+        if not line_score or not game_header:
+            print(f"Required result sets missing for {date_str}")
+            return pd.DataFrame()
+
+        if not line_score.get('rowSet') or not game_header.get('rowSet'):
+            print(f"No games found for {date_str}")
+            return pd.DataFrame()
+
+        # Create DataFrames (same logic as before)
+        game_header_df = pd.DataFrame(game_header['rowSet'], columns=game_header['headers'])
+        line_score_df = pd.DataFrame(line_score['rowSet'], columns=line_score['headers'])
+
+        merged_df = line_score_df.merge(
+            game_header_df[['GAME_ID', 'HOME_TEAM_ID', 'VISITOR_TEAM_ID']],
+            on='GAME_ID',
+            how='left'
+        )
+
+        merged_df['IS_HOME'] = merged_df['TEAM_ID'] == merged_df['HOME_TEAM_ID']
+        merged_df['GAME_DATE'] = pd.to_datetime(date.strftime('%Y-%m-%d'))
+
+        print(f"Historical method: Successfully fetched {len(merged_df)} rows for {date_str}")
+        return merged_df
+
+    except Exception as e:
+        print(f"Error in historical method for {date_str}: {e}")
+        return pd.DataFrame()
+
+
+def is_historical_date(date):
+    """
+    Check if a date is before the WinProbability field was added
+    """
+    cutoff_date = pd.Timestamp('2025-04-10')
+    return pd.Timestamp(date) < cutoff_date
 
 
 def create_game_data_df(scoreboard_df):

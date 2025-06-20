@@ -13,7 +13,7 @@ from src.data_collection.season_stat_collector import fetch_nba_team_stats
 
 
 def main():
-    season = '2023-24'
+    season = '2024-25'
     cm = CacheManager()
 
     # Try to get cached processed data
